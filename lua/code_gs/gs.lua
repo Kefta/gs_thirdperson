@@ -197,7 +197,7 @@ function code_gs.LoadAddon(sName, bLoadLanguage)
 		return {}
 	end
 	
-	local flTime = UnPredictedCurTime()
+	local flTime = CurTime()
 	
 	-- Don't load the file more than once in autorun
 	if (tLoadedAddons[sName] == flTime) then
@@ -246,7 +246,7 @@ function code_gs.LoadAddon(sName, bLoadLanguage)
 		return tRet
 	end
 	
-	local sLangFormat = "code_gs/lang/" .. sName .. "_%s.lua"
+	local sLangFormat = "code_gs/" .. sName .. "/lang/%s.lua"
 	tFiles = file.Find(string.format(sLangFormat, '*'), "LUA")
 	iFileLen = #tFiles
 	
@@ -257,26 +257,48 @@ function code_gs.LoadAddon(sName, bLoadLanguage)
 	
 	if (SERVER) then
 		for i = 1, iFileLen do
-			AddCSLuaFile("code_gs/lang/" .. tFiles[i])
+			AddCSLuaFile("code_gs/" .. sName .. "/lang/" .. tFiles[i])
 		end
 	end
 	
 	local sDefaultPath = string.format(sLangFormat, "en")
-	local sLangPath = string.format(sLangFormat, gmod_language:GetString():lower())
+	local sLangPath = string.format(sLangFormat, gmod_language:GetString():sub(-2):lower())
 	
 	-- English not found; select a new default
 	if (not file.Exists(sDefaultPath, "LUA")) then
 		sDefaultPath = string.format(sLangFormat, tFiles[1])
 	end
 	
+	local fLanguage = code_gs.SafeCompile(sDefaultPath)
+	
+	if (not fLanguage) then
+		return tRet or {}
+	end
+	
+	local tDefault = {}
+	debug.setfenv(fLanguage, tDefault)
+	fLanguage()
+	
 	if (file.Exists(sLangPath, "LUA")) then
-		local tTranslation = code_gs.SafeInclude(sLangPath)
+		local fTranslation = code_gs.SafeCompile(sLangPath)
 		
-		for key, str in pairs(code_gs.SafeInclude(sDefaultPath)) do
+		if (not fTranslation) then
+			return tRet or {}
+		end
+		
+		local tTranslation = {}
+		debug.setfenv(fTranslation, tTranslation) 
+		fTranslation()
+		
+		local sName = sName .. "_"
+		
+		for key, str in pairs(tDefault) do
 			tLang[sName .. key] = tTranslation[key] or str
 		end
 	else
-		for key, str in pairs(code_gs.SafeInclude(sDefaultPath)) do
+		local sName = sName .. "_"
+		
+		for key, str in pairs(tDefault) do
 			tLang[sName .. key] = str
 		end
 	end
@@ -285,15 +307,27 @@ function code_gs.LoadAddon(sName, bLoadLanguage)
 		sNewLang = sPath .. sNewLang:lower() .. ".lua"
 		
 		if (file.Exists(sNewLang, "LUA")) then
-			local tTranslation = code_gs.SafeInclude(sNewLang)
+			local fTranslation = code_gs.SafeCompile(sLangPath)
+			
+			if (not fTranslation) then
+				return tRet or {}
+			end
+			
+			local tTranslation = {}
+			debug.setfenv(fTranslation, tTranslation) 
+			fTranslation()
+			
+			local sName = sName .. "_"
 			
 			-- Fill in any non-translated phrases with default ones
-			for key, str in pairs(code_gs.SafeInclude(sDefaultPath)) do
+			for key, str in pairs(tDefault) do
 				key = key:lower()
 				tLang[sName .. key] = tTranslation[key] or str
 			end
 		else
-			for key, str in pairs(code_gs.SafeInclude(sDefaultPath)) do
+			local sName = sName .. "_"
+			
+			for key, str in pairs(tDefault) do
 				tLang[sName .. key:lower()] = str
 			end
 		end
@@ -307,5 +341,5 @@ function code_gs.AddonLoaded(sName)
 end
 
 function code_gs.GetPhrase(sKey)
-	return tLang[sKey] or ""
+	return tLang[sKey] or sKey
 end
