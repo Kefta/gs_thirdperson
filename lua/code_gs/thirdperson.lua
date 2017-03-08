@@ -5,17 +5,16 @@ code_gs.thirdperson = {
 	YMax = 30,
 	ZMin = -50,
 	ZMax = 100,
-	FOVMin = 0.1, -- Limtis from camera
+	FOVMin = 0.1, -- Limits from camera
 	FOVMax = 175
 }
 
 -- TODO: Add maya mode
-
-local gs_thirdperson = CreateConVar( "gs_thirdperson", "0", FCVAR_ARCHIVE, "Enables third-person" )
-local gs_thirdperson_fov = CreateConVar( "gs_thirdperson_fov", "0", FCVAR_ARCHIVE, "Forces FOV in third-person. 0 = default" )
-local gs_thirdperson_offset_right = CreateConVar( "gs_thirdperson_offset_right", "0", FCVAR_ARCHIVE, "X-axis offset. Can be between " )
-local gs_thirdperson_offset_forward = CreateConVar( "gs_thirdperson_offset_forward", "0", FCVAR_ARCHIVE, "Y-axis offset. Can be between " )
-local gs_thirdperson_offset_up = CreateConVar( "gs_thirdperson_offset_up", "0", FCVAR_ARCHIVE, "Z-axis offset. Can be between " )
+local gs_thirdperson = CreateConVar("gs_thirdperson", "0", FCVAR_ARCHIVE, "Enables third-person")
+local gs_thirdperson_fov = CreateConVar("gs_thirdperson_fov", "0", FCVAR_ARCHIVE, "Forces FOV in third-person. 0 = default")
+local gs_thirdperson_offset_right = CreateConVar("gs_thirdperson_offset_right", "50", FCVAR_ARCHIVE, "X-axis offset. Can be between " .. code_gs.thirdperson.XMin .. " and " .. code_gs.thirdperson.XMax)
+local gs_thirdperson_offset_forward = CreateConVar("gs_thirdperson_offset_forward", "-75", FCVAR_ARCHIVE, "Y-axis offset. Can be between " .. code_gs.thirdperson.YMin .. " and " .. code_gs.thirdperson.YMax)
+local gs_thirdperson_offset_up = CreateConVar("gs_thirdperson_offset_up", "0", FCVAR_ARCHIVE, "Z-axis offset. Can be between " .. code_gs.thirdperson.ZMin .. " and " .. code_gs.thirdperson.ZMax)
 
 hook.Add("ShouldDrawLocalPlayer", "GS-Thirdperson", function()
 	if (gs_thirdperson:GetBool()) then
@@ -24,7 +23,7 @@ hook.Add("ShouldDrawLocalPlayer", "GS-Thirdperson", function()
 end)
 
 hook.Add("CalcView", "GS-Thirdperson", function(pPlayer, vPos, aRot)
-	if (gs_thirdperson:GetBool() and pPlayer:GetObserverMode() == OBS_MODE_NONE and not (pPlayer:GetCanZoom() and pPlayer:KeyDown(IN_ZOOM))) then
+	if (gs_thirdperson:GetBool() and pPlayer:GetObserverMode() == OBS_MODE_NONE) then
 		local tLimits = code_gs.thirdperson
 		local tRet = {
 			origin = vPos + aRot:Right() * math.Clamp(gs_thirdperson_offset_right:GetFloat(), tLimits.XMin, tLimits.XMax)
